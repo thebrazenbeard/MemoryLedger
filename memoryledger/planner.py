@@ -15,7 +15,7 @@ class LifecyclePlanner:
 
     The host must own the authorizer, event index, clock and policy. They are
     *not* authenticated by construction of these Python objects. In particular,
-    passing a model-controlled callable as \`authorizer\` defeats the trust model.
+    passing a model-controlled callable as `authorizer` defeats the trust model.
     No sink, mutable database, model adapter or tool execution exists here.
     """
 
