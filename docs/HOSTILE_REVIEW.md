@@ -6,7 +6,7 @@ This is a **design instrument**, not an independent review, deployment qualifica
 
 The initial assertion test failed against a HOLD/NOT_IMPLEMENTED stub and passed after implementing LifecyclePlanner. A later three-test batch for correction of expired sources, correction of future targets, and correction cycles failed against the initial implementation, then passed after the guarded behavior was added. Candidate-index overflow also failed before bounding and passed afterward.
 
-Full local source suite: **31 synthetic tests passed**. No real private conversations, provider accounts, SQLite memory databases or model calls were part of the suite. A frozen remote revision must be tested again before merging.
+Initial frozen head: **31 synthetic tests passed**. After reviewer found an unhandled three-event correction cycle at exact prior head, seven additional adversarial tests were introduced: the six failing negatives were observed RED, then the revised bounded ancestry traversal passed all **38** synthetic tests in a freshly cloned GitHub branch on Lappy. No real private conversations, provider accounts, SQLite memory databases or model calls were part of the suite. A frozen remote revision must be tested again before merging.
 
 ## Adversarial cases and expected invariant
 
@@ -48,9 +48,13 @@ Full local source suite: **31 synthetic tests passed**. No real private conversa
 ## Evidence classes
 
 - SOURCE_INSPECTION: reference implementation contracts from STM, DeepMemoryStorage, Vera Mono, Roots and Ingest; freshness must be checked again at absorption.
-- TEST: 31 local stdlib synthetic tests, with recorded red/green for initial implementation and three additional correction cases.
-- INDEPENDENT_REVIEW: none yet.
-- REAL_SYSTEM_PROBE OF THIS LAB: none yet.
+- TEST: 38 stdlib synthetic tests after review-driven correction-chain repair, with new RED-to-GREEN evidence; no independently labeled comparative history benchmark.
+- REVIEW: separate reviewer reported exact-prior-head physical Windows execution, found an unhandled three-event correction cycle, and required independent comparative labels. **No renewed independent review of the corrected head** yet.
+- REAL_HOST_SYNTHETIC_TEST: Lappy cloned current branch and 38 tests passed. REAL_SELECTED_VERA_RUNTIME_PROBE: none.
 - RUNTIME_CONSUMPTION, MEMORY_ADMISSION, EXTERNAL_EFFECT, DEPLOYMENT: none.
 
 A reviewable draft source branch is a laboratory milestone, not Vera Mono installation permission.
+
+## Review follow-up
+
+The reviewed head `06fe39e` incorrectly returned REVIEW_CORRECTION on a three-event correction cycle. The current Draft PR adds complete bounded ancestry traversal (64-link cap), repeated source-time/identity/privacy/expiry checks and seven new tests. This is **a correction requiring renewed exact-head review**, not proof that the previous reviewer approved the new code. See [COMPARATIVE_EVALUATION_PROTOCOL_V1](COMPARATIVE_EVALUATION_PROTOCOL_V1.md); the matched baseline and independent labels are not yet available.
