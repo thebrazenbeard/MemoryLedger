@@ -79,24 +79,39 @@ class LifecyclePlanner:
 
         allowed = authorization.purposes
         if event.speech_act is SpeechAct.CORRECTION:
-            targets = [prior for prior in index.events if prior.event_id == event.corrects_event_id]
-            if len(targets) != 1:
-                return make(Disposition.HOLD, "CORRECTION_TARGET_UNVERIFIED")
-            previous = targets[0]
+            # Only a trusted host may supply a complete, scope-constrained index.
+            # Traverse the whole ancestor chain: a direct 2-node comparison
+            # misses longer cycles and corrupted or expired source ancestors.
+            by_id = {prior.event_id: prior for prior in index.events}
+            visited = {event.event_id}
+            target_id = event.corrects_event_id
+            child = event
+            steps = 0
             fields = ("tenant_id", "project_id", "identity_id", "conversation_id", "privacy_scope")
-            if any(getattr(previous, f) != getattr(event, f) for f in fields):
-                return make(Disposition.HOLD, "CORRECTION_SCOPE_MISMATCH")
-            if previous.occurred_at > event.occurred_at:
-                return make(Disposition.HOLD, "CORRECTION_TEMPORAL_CONFLICT")
-            if previous.speech_act is SpeechAct.CORRECTION and previous.corrects_event_id == event.event_id:
-                return make(Disposition.HOLD, "CORRECTION_CYCLE")
-            if (self._policy.source_expiry_after is not None
-                    and at - previous.occurred_at >= self._policy.source_expiry_after):
-                return make(Disposition.HOLD, "CORRECTION_TARGET_EXPIRED")
+            while target_id is not None:
+                if target_id in visited:
+                    return make(Disposition.HOLD, "CORRECTION_CYCLE")
+                if steps >= 64:
+                    return make(Disposition.HOLD, "CORRECTION_CHAIN_BUDGET_EXCEEDED")
+                previous = by_id.get(target_id)
+                if previous is None:
+                    return make(Disposition.HOLD, "CORRECTION_TARGET_UNVERIFIED")
+                if any(getattr(previous, f) != getattr(event, f) for f in fields):
+                    return make(Disposition.HOLD, "CORRECTION_SCOPE_MISMATCH")
+                if previous.occurred_at > child.occurred_at:
+                    return make(Disposition.HOLD, "CORRECTION_TEMPORAL_CONFLICT")
+                if (self._policy.source_expiry_after is not None
+                        and at - previous.occurred_at >= self._policy.source_expiry_after):
+                    return make(Disposition.HOLD, "CORRECTION_TARGET_EXPIRED")
+                visited.add(target_id)
+                steps += 1
+                child = previous
+                target_id = (previous.corrects_event_id
+                             if previous.speech_act is SpeechAct.CORRECTION else None)
             if Purpose.CORRECTION_REVIEW not in allowed:
                 return make(Disposition.HOLD, "CORRECTION_REVIEW_NOT_GRANTED")
             return make(Disposition.REVIEW_CORRECTION, "CORRECTION_REQUIRES_INDEPENDENT_REVIEW",
-                        target=previous.event_id)
+                        target=event.corrects_event_id)
 
         if event.speech_act is SpeechAct.ASSERTION:
             if (self._policy.historical_review_after is not None
