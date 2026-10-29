@@ -61,6 +61,23 @@ class ContractTests(unittest.TestCase):
         self.assertFalse(hasattr(result, "effect_receipt"))
         self.assertNotIn("SYNTHETIC_A", repr(result))
 
+    def test_non_user_assertions_never_propose_current_memory_review(self):
+        # A user's host grant cannot be silently inherited by an assistant or
+        # tool utterance from the same conversation.  Those statements may be
+        # recorded as historical evidence, never current owner facts by default.
+        for speaker in ("assistant", "system", "developer", "tool", "unknown"):
+            with self.subTest(speaker=speaker):
+                result = planner().propose(event(speaker=speaker), at=NOW)
+                self.assertNotEqual(result.disposition, Disposition.REVIEW_CURRENT)
+                self.assertEqual(result.disposition, Disposition.WORKING_ONLY)
+
+    def test_assistant_assertion_can_still_be_historical_evidence(self):
+        result = planner().propose(
+            event(speaker="assistant", occurred_at=NOW - timedelta(days=30)), at=NOW,
+        )
+        self.assertEqual(result.disposition, Disposition.REVIEW_HISTORICAL)
+        self.assertEqual(result.claim_ceiling, "PROPOSAL_ONLY_NO_MEMORY_ADMISSION_OR_EFFECT")
+
     def test_historical_review_at_day_30_is_not_export(self):
         result = planner().propose(event(occurred_at=NOW-timedelta(days=30)), at=NOW)
         self.assertEqual(result.disposition, Disposition.REVIEW_HISTORICAL)

@@ -118,7 +118,11 @@ class LifecyclePlanner:
                     and age >= self._policy.historical_review_after
                     and Purpose.HISTORICAL_REVIEW in allowed):
                 return make(Disposition.REVIEW_HISTORICAL, "HISTORICAL_REVIEW_ELIGIBLE_NOT_EXPORTED")
-            if Purpose.CURRENT_REVIEW in allowed:
+            # The host's grant to review current owner claims does not turn
+            # assistant, system, developer or tool output into a user claim.
+            # Those utterances remain historical/working evidence unless a
+            # future explicit source-role authority contract is qualified.
+            if event.speaker == "user" and Purpose.CURRENT_REVIEW in allowed:
                 return make(Disposition.REVIEW_CURRENT, "CURRENT_ADMISSION_REVIEW_ONLY")
 
         if Purpose.WORKING in allowed:
