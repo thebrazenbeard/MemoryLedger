@@ -56,3 +56,16 @@ No branch performs I/O or persists a result.
 7. Frozen exact-head independent review, host-installed synthetic allow/deny/replay/revoke tests, model consumption evidence if that claim is made, and reversible rollout.
 
 This lab is **not qualified** for any of the above yet.
+
+
+## Comparative improvement gate (required for future Vera Mono absorption)
+
+Passing synthetic contract tests alone is not evidence that this design improves actual memory decisions. Before any absorption:
+
+1. **Pre-register an independent evaluation set** with host-custodied labels and untouched held-out splits. Include sarcasm, jokes, hypotheticals, conflicting personal statements, consent revocations, ambiguous references, adversarial retrieved instructions, corrections, privacy boundaries, expiry, and chronology. Do not use the same model's labels as independent ground truth.
+2. **Compare against the existing portfolio baseline** (STM retrieval/retention plus Vera Mono governed admission, with the same authenticated inputs and resource budgets). Measure incorrect current/autobiographical promotions, missed legitimate corrections, unauthorized source exposure, retention violations, false conflict resolution, over-abstention and useful recall. Include cost/latency and uncertainty calibration.
+3. **Falsify overfitting and negative transfer** using different speakers, time periods, source mixtures, distribution shifts, misleading retrieved evidence, counterfactual privacy and model/provider substitutions. A gain on one benchmark is not a blanket improvement.
+4. **No-regression thresholds** for identity, privacy, authority and chronological provenance are mandatory; favorable average accuracy cannot compensate for a single confirmed protected-boundary violation.
+5. Preserve exact dataset lineage, labeling authority, frozen model/code heads, review identity, runnable commands, negative cases and results. Independent review cannot elevate the evidence beyond its underlying test and real-host class.
+
+Until this gate passes: **IMPROVEMENT_UNPROVEN**, even if all public synthetic unit tests pass.
