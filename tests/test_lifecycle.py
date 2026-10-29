@@ -223,4 +223,57 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             LifecyclePolicy(historical_review_after=timedelta(days=50),source_expiry_after=timedelta(days=45))
 
+
+class CorrectionChainAdversarialTests(unittest.TestCase):
+    def test_three_node_cycle_is_held(self):
+        a=event(event_id="node-A",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-C")
+        b=event(event_id="node-B",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-A")
+        c=event(event_id="node-C",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-B")
+        result=planner().propose(c,at=NOW,index=CandidateIndex((a,b)))
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_CYCLE"))
+
+    def test_self_correction_is_held_as_cycle(self):
+        c=event(event_id="self",speech_act=SpeechAct.CORRECTION,corrects_event_id="self")
+        result=planner().propose(c,at=NOW)
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_CYCLE"))
+
+    def test_missing_transitive_ancestor_is_held(self):
+        b=event(event_id="node-B",speech_act=SpeechAct.CORRECTION,corrects_event_id="missing")
+        c=event(event_id="node-C",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-B")
+        result=planner().propose(c,at=NOW,index=CandidateIndex((b,)))
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_TARGET_UNVERIFIED"))
+
+    def test_transitive_identity_scope_is_checked(self):
+        a=event(event_id="node-A",identity_id="vera-other")
+        b=event(event_id="node-B",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-A")
+        c=event(event_id="node-C",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-B")
+        result=planner().propose(c,at=NOW,index=CandidateIndex((a,b)))
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_SCOPE_MISMATCH"))
+
+    def test_transitive_age_and_time_are_checked(self):
+        a=event(event_id="node-A",occurred_at=NOW-timedelta(days=46))
+        b=event(event_id="node-B",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-A")
+        c=event(event_id="node-C",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-B")
+        result=planner().propose(c,at=NOW,index=CandidateIndex((a,b)))
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_TARGET_EXPIRED"))
+
+    def test_acyclic_three_node_chain_remains_reviewable(self):
+        a=event(event_id="node-A",occurred_at=NOW-timedelta(days=3))
+        b=event(event_id="node-B",occurred_at=NOW-timedelta(days=2),
+                speech_act=SpeechAct.CORRECTION,corrects_event_id="node-A")
+        c=event(event_id="node-C",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-B")
+        result=planner().propose(c,at=NOW,index=CandidateIndex((a,b)))
+        self.assertEqual(result.disposition,Disposition.REVIEW_CORRECTION)
+        self.assertEqual(result.target_event_id,"node-B")
+
+    def test_chain_traversal_budget_fail_closed(self):
+        a=event(event_id="node-0",occurred_at=NOW-timedelta(days=2))
+        nodes=[a]
+        for i in range(1,66):
+            nodes.append(event(event_id=f"node-{i}",occurred_at=NOW-timedelta(days=1),
+                               speech_act=SpeechAct.CORRECTION,corrects_event_id=f"node-{i-1}"))
+        c=event(event_id="node-new",speech_act=SpeechAct.CORRECTION,corrects_event_id="node-65")
+        result=planner().propose(c,at=NOW,index=CandidateIndex(tuple(nodes)))
+        self.assertEqual((result.disposition,result.reason),(Disposition.HOLD,"CORRECTION_CHAIN_BUDGET_EXCEEDED"))
+
 if __name__=="__main__":unittest.main()
