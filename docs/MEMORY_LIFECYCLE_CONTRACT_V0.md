@@ -39,7 +39,7 @@ A repository or tool being discoverable does not mean Vera can invoke it. A tool
 - Project/identity/tenant/conversation mismatch, unauthorized privacy, revoked/stale/not-yet-issued consent -> HOLD.
 - Event timestamp after host observation -> HOLD. A duplicate unchanged event -> HOLD; same ID with conflicting content or identity -> REJECT collision.
 - A source beyond explicitly configured expiration -> propose EXPIRE, not export.
-- Correction with absent, ambiguous, cross-scope, postdated, expired or cyclic source -> HOLD; valid correction -> REVIEW_CORRECTION only with explicit purpose.
+- Correction with absent, ambiguous, cross-scope, postdated, expired or cyclic source -> HOLD. Walk transitive correction ancestry (not just the immediate parent), enforce the same owner/privacy/time/expiry restrictions for every ancestor, reject self/long cycles, and HOLD when a 64-link traversal budget is exhausted. Valid bounded correction -> REVIEW_CORRECTION only with explicit purpose.
 - Assertion eligible for historical review and with purpose -> REVIEW_HISTORICAL. Otherwise assertion with current-review purpose -> REVIEW_CURRENT.
 - Other pragmatic classes -> WORKING_ONLY only if purpose allows it, else HOLD.
 
