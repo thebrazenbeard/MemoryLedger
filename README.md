@@ -24,6 +24,47 @@ python -m unittest discover -s tests -v
 
 The v0 source module is importable as memoryledger. Its public interface is ConversationEvent, HostAuthorization, LifecyclePolicy, CandidateIndex and LifecyclePlanner.propose. It intentionally has no storage, retrieval or export adapter.
 
+### Cross-store receipt gate (synthetic source candidate)
+
+`memoryledger.receipt_gate` adds a **pure advisory seam** between STM's
+`STM_HISTORICAL_HANDOFF_CANDIDATE_V1` source envelope and a future, separately
+qualified DeepMemoryStorage historical-evidence receiver. It accepts the same
+scope identifiers, source-version SHA-256, destination, host-computed idempotency
+key and DMS-like receipt fields. The receipt MAC alone is not proof of custody:
+an independent, host-selected verifier must authenticate the destination,
+receipt MAC, source digest and source/owner scope. Without that verifier the
+decision is `HOLD`; a positive result is `HISTORICAL_REVIEW_ONLY`, **not** a
+durable write, current-memory admission or evidence of inference consumption.
+
+The gate refuses to infer a native Project ID from source names or timestamps.
+A project-scoped historical record whose real native Project ID has not been
+verified is held as `NATIVE_PROJECT_ID_UNVERIFIED`; genuinely global sources
+must explicitly carry `GLOBAL` scope and no asserted Project ID. This matters
+for account exports whose project-scoped records do not identify their project.
+
+`plan_revocation_reconciliation` requires a *host-owned complete destination
+inventory* and independently verified per-destination erasure/revocation
+tombstone acknowledgements. It remains `PENDING_REVOCATION_ACKS` until every
+listed destination is acknowledged, including after source expiry; it refuses
+unexpected, duplicate, future-source or wrong-digest acknowledgements. Even a
+complete set returns `ACKS_VERIFIED_REVIEW_ONLY`: completeness of the host's
+destination inventory, authority and downstream effects are **not** established
+by this source module.
+An acknowledgement of `REVOKE_SCOPE` cannot silently satisfy an `ERASE_SOURCE`
+obligation, or vice versa; the exact expected operation is part of the review.
+Revocation remains reviewable when a previously stored source's native Project
+ID is unresolved: lost context must not make already-custodied evidence
+impossible to erase. The trusted host must still authenticate the source and
+every tombstone acknowledgement against its actual custody records.
+
+Run `python -m unittest discover -s tests -v` for all synthetic checks. The
+receipt-gate checks exercise forged/missing receipts, Project binding, scope,
+expiration, temporal ordering, target completeness and replay-like duplicates.
+The module performs **no** file, DB, network, memory, retention, revocation,
+deletion or authority mutation. Neither STM nor DMS is imported as a runtime
+dependency; their actual wire formats and cryptographic custody must be
+requalified together on a private host before use.
+
 ## Design boundaries
 
 - A host-injected authorizer callback does not authenticate itself. It must be selected, constrained and verified by a trusted host, independently of any LLM.
