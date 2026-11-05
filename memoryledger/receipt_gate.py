@@ -104,6 +104,7 @@ class ReceiptDecision:
 
 
 HistoricalVerifier = Callable[[SourceCustody, HistoricalReceipt], bool]
+ProjectVerifier = Callable[[SourceCustody], bool]
 RevocationVerifier = Callable[[SourceCustody, RevocationAck], bool]
 
 
@@ -133,6 +134,7 @@ def plan_historical_handoff(
     expected_idempotency_key: str,
     at: datetime,
     verifier: HistoricalVerifier | None = None,
+    project_verifier: ProjectVerifier | None = None,
 ) -> ReceiptDecision:
     """Only nominate authenticated historical evidence for further review.
 
@@ -147,6 +149,17 @@ def plan_historical_handoff(
     issue = _source_hold(source, at)
     if issue:
         return ReceiptDecision(ReceiptStatus.HOLD, issue)
+    if source.source_scope == "PROJECT_BOUND":
+        # The caller's bool and syntactically valid ID are never independent
+        # evidence of a real native Project. Probe a host-owned source map.
+        if project_verifier is None:
+            return ReceiptDecision(ReceiptStatus.HOLD, "INDEPENDENT_PROJECT_VERIFIER_REQUIRED")
+        try:
+            authentic_project = project_verifier(source)
+        except Exception:
+            authentic_project = False
+        if authentic_project is not True:
+            return ReceiptDecision(ReceiptStatus.HOLD, "PROJECT_BINDING_VERIFICATION_FAILED")
     if type(receipt) is not HistoricalReceipt:
         return ReceiptDecision(ReceiptStatus.HOLD, "RECEIPT_REQUIRED")
     if (receipt.destination_id != destination_id
