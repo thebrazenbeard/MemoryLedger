@@ -41,6 +41,9 @@ A project-scoped historical record whose real native Project ID has not been
 verified is held as `NATIVE_PROJECT_ID_UNVERIFIED`; genuinely global sources
 must explicitly carry `GLOBAL` scope and no asserted Project ID. This matters
 for account exports whose project-scoped records do not identify their project.
+Even a caller's `native_project_id_verified=True` flag cannot certify that
+binding: project-scoped handoffs need a *separate host-selected* project
+verifier, absent by default, in addition to the DMS custody receipt verifier.
 
 `plan_revocation_reconciliation` requires a *host-owned complete destination
 inventory* and independently verified per-destination erasure/revocation

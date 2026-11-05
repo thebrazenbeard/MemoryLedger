@@ -7,4 +7,5 @@ dist/
 *.egg-info/
 *.sqlite*
 *.db
-.env
+config.bat
+node_modules
