@@ -37,6 +37,7 @@ def receipt(**kwargs):
 
 
 def handoff(s=None, r=None, **kwargs):
+    kwargs.setdefault("project_verifier", lambda *_: True)
     return plan_historical_handoff(s or source(), r if r is not None else receipt(),
                                    destination_id="dms:historical",
                                    expected_idempotency_key=KEY, at=NOW, **kwargs)
@@ -50,6 +51,17 @@ def ack(destination="dms:historical", **kwargs):
 
 
 class ReceiptGateTests(unittest.TestCase):
+    def test_caller_project_verified_flag_needs_separate_host_probe(self):
+        result = plan_historical_handoff(source(), receipt(),
+            destination_id="dms:historical", expected_idempotency_key=KEY,
+            at=NOW, verifier=lambda *_: True)
+        self.assertEqual(result.status, ReceiptStatus.HOLD)
+        self.assertEqual(result.reason, "INDEPENDENT_PROJECT_VERIFIER_REQUIRED")
+        for project_verifier in (lambda *_: False, lambda *_: 1,
+                                 lambda *_: (_ for _ in ()).throw(RuntimeError())):
+            outcome = handoff(verifier=lambda *_: True, project_verifier=project_verifier)
+            self.assertEqual(outcome.reason, "PROJECT_BINDING_VERIFICATION_FAILED")
+
     def test_historical_only_after_injected_independent_verification(self):
         self.assertEqual(handoff().status, ReceiptStatus.HOLD)
         self.assertEqual(handoff(verifier=lambda *_: False).status, ReceiptStatus.HOLD)
